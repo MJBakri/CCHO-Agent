@@ -1,0 +1,11 @@
+fastapi
+groq
+uvicorn
+pydantic
+python-dotenv
+pytest
+websockets==10.3
+pydantic_settings
+python-socketio==5.7.2
+python-socketio==5.7.2
+python-engineio==4.3.4
