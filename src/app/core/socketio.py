@@ -16,7 +16,7 @@ sio = socketio.AsyncServer(
     # max_http_buffer_size=1e8
 )
 
-
+# ⚠️ CURRENTLY UNUSED ⚠️
 
 def setup_socketio(app: FastAPI):
     socket_app = socketio.ASGIApp(
