@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -7,4 +8,4 @@ class LLMRequest(BaseModel):
     temperature: float = 0.7
     top_p: int = 1
     top_n: int = 1
-    max_tokens: int = 2000
+    max_tokens: Optional[int] = 2000

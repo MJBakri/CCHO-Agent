@@ -1,10 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional, Union
+
+from fastapi import WebSocket
+
+from core.classes.conversation_manager import ConversationManager
+from core.classes.message import ChatMessage
+from core.classes.prompt import Prompt
+from core.classes.context_manager import ContextManager
+from models.llm.context import LLMContext
 
 
 class LLM(ABC):
-    
-    context: Optional[str] = None
     
     @abstractmethod
     def __init__(
@@ -13,7 +19,8 @@ class LLM(ABC):
         top_p: float = 1.0,
         max_tokens: Optional[int] = None,
         model_name: Optional[str] = None,
-        **kwargs  # Allows additional parameters for flexibility
+        prompt: Optional[str] = None,
+        **kwargs
     ):
         """Initialize the LLM with generation parameters.
 
@@ -28,10 +35,11 @@ class LLM(ABC):
         self.top_p = top_p
         self.max_tokens = max_tokens
         self.model_name = model_name
-        
+        self.contexts = ContextManager()
+        self.prompt = Prompt(prompt=prompt, placeholders=kwargs["placeholders"]) if prompt else None
 
     @abstractmethod
-    def send_to_llm(self, message:str):
+    async def send_to_llm(message:str, ws_client:Optional[WebSocket]=None, conversation_manager:Optional[ConversationManager]=None) -> str:
         """_summary_
 
         Args:
@@ -39,11 +47,16 @@ class LLM(ABC):
         """
         pass
     
-    def add_context(self, context: str):
+    @abstractmethod
+    def resources_recorder(self):
+        pass
+    
+    def add_context(self, context: Union[LLMContext, List[LLMContext]]):
         """Add context to the LLM instance.
 
         Args:
             context (str): Context to be added.
         """
-        # This method can be overridden by subclasses if needed
-        self.context = context
+        
+        self.contexts.add_context(context)
+        
