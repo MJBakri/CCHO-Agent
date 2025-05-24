@@ -1,9 +1,9 @@
 import socketio
 from fastapi import FastAPI
 from logger.logger import logger
-from core.classes.llm_service_factory import LLMServiceFactory
+from services.llm.llm_service_factory import LLMServiceFactory
 from core.config import settings
-from services.llm.groq import groq_client
+from services.llm.clients.groq import groq_client
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins=[],

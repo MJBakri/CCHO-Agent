@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
-from services.llm.groq import groq_client
+from services.llm.clients.groq import groq_client
 from core.classes.abstract_classes.llm_service_provider import LLMServiceProvider
 from core.config import LLMProviders, settings
 

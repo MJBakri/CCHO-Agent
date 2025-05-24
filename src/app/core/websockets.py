@@ -1,6 +1,6 @@
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, List
-from core.classes.llm_service_factory import LLMServiceFactory
+from services.llm.llm_service_factory import LLMServiceFactory
 from logger.logger import logger
 class WebSocketManager:
     def __init__(self):

@@ -5,7 +5,7 @@ from core.classes.abstract_classes.llm_service_provider import LLMServiceProvide
 
 load_dotenv()
 
-class GroqLLM(LLMServiceProvider):
+class GroqService(LLMServiceProvider):
     def __init__(self, api_key: str):
         if not api_key:
             raise ValueError("API key is required for Groq LLM")
@@ -15,7 +15,7 @@ class GroqLLM(LLMServiceProvider):
     def get_client(self) -> AsyncGroq:
         return self.client
     
-groq_client = GroqLLM(
+groq_client = GroqService(
     api_key=os.getenv("GROQ_API")
 )
     

@@ -3,10 +3,12 @@ from typing import Optional
 
 
 class LLM(ABC):
+    
+    context: Optional[str] = None
+    
     @abstractmethod
     def __init__(
         self,
-        service_provider: str,
         temperature: float = 0.7,
         top_p: float = 1.0,
         max_tokens: Optional[int] = None,
@@ -16,7 +18,6 @@ class LLM(ABC):
         """Initialize the LLM with generation parameters.
 
         Args:
-            service_provider (str): the service provider of the LLM.
             temperature (float): Controls randomness (lower = more deterministic).
             top_p (float): Controls diversity via nucleus sampling.
             max_tokens (Optional[int]): Maximum number of tokens to generate.
@@ -37,3 +38,12 @@ class LLM(ABC):
             message (str): _description_
         """
         pass
+    
+    def add_context(self, context: str):
+        """Add context to the LLM instance.
+
+        Args:
+            context (str): Context to be added.
+        """
+        # This method can be overridden by subclasses if needed
+        self.context = context

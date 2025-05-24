@@ -3,7 +3,6 @@ from logger.logger import logger
 from core.config import settings
 from api.v1.api import api_router
 from core.middleware import setup_middleware
-from core.socketio import setup_socketio
 from core.websockets import setup_websockets
 
 app = FastAPI(
