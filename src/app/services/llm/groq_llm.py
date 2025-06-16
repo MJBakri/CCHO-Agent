@@ -5,6 +5,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 from fastapi import WebSocket
+from models.llm.attachments import MessageAttachment
 from logger.logger import logger
 from core.classes.conversation_manager import ConversationManager
 from core.classes.message import ChatMessage
@@ -30,8 +31,34 @@ class LLMGroq(LLM):
         super().__init__(temperature=temperature, top_p=top_p, max_tokens=max_tokens, model_name=model_name, **kwargs)
         self.client = groq_client.get_client()
             
+    def _handle_message(self, message:str, attachments: Optional[List[MessageAttachment]]):
         
-    async def send_to_llm(self, message:str, ws_client:Optional[WebSocket]=None, conversation_manager:Optional[ConversationManager]=None):
+        content = []
+        if attachments:
+            with_attachment = {"role": "user", "content": []}
+            if message:
+                with_attachment["content"].append({
+                    "type" : "text",
+                    "text" : message,
+                })
+            #save image as base64 text to local
+            
+            logger.debug("With Attachments!")
+            for attachment in attachments:
+
+                if attachment.get("type") == "image":
+                    with_attachment["content"].append({
+                        "type" : "image_url",
+                        "image_url": {
+                            "url" : f'data:image/jpeg;base64,{attachment.get("data")}'
+                        }
+                    })
+            content.append(with_attachment)
+        else:
+            content.append({"role": "user", "content": message})
+        return content
+        
+    async def send_to_llm(self, message:str=None, ws_client:Optional[WebSocket]=None, conversation_manager:Optional[ConversationManager]=None, attachments:Optional[List[MessageAttachment]]=None, stream:bool=False):
         """
         Send a message to the Groq LLM and return the response.
         
@@ -48,21 +75,32 @@ class LLMGroq(LLM):
         if self.prompt:
             messages.append({"role": "system", "content": self.prompt.get_formatted_prompt()})
         
-        messages.extend(await conversation_manager.get_messages_to_llm() if conversation_manager else [
-            {"role": "user", "content": message}
-        ])
-        logger.debug(f"Sending message to Groq LLM: {str(messages)}")
-        stream = await self.client.chat.completions.create(
-            messages=messages,
-            model=self.model_name,
-            stream=True
+        messages.extend(await conversation_manager.get_messages_to_llm(self._handle_message, message=message, attachments=attachments) if conversation_manager else 
+            self._handle_message(message=message, attachments=attachments)
         )
-        ai_id = uuid4()
-        async for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                if conversation_manager:
-                    await conversation_manager.handle_ai_message(chunk=chunk.choices[0].delta.content, id=ai_id)  
-                await ws_client.send_json({"reply":chunk.choices[0].delta.content})
+        # logger.debug(f"Payload sent to Groq {messages}")
+        if stream:
+            stream = await self.client.chat.completions.create(
+                messages=messages,
+                model=self.model_name,
+                stream=True
+            )
+            ai_id = uuid4()
+            async for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    if conversation_manager:
+                        await conversation_manager.handle_ai_message(chunk=chunk.choices[0].delta.content, id=ai_id)  
+                    await ws_client.send_json({"reply":chunk.choices[0].delta.content})
+        else:
+            response = await self.client.chat.completions.create(
+                messages=messages,
+                model=self.model_name,
+                stream=False
+            )
+            if conversation_manager:
+                await conversation_manager.handle_ai_message(chunk=response.choices[0].message.content)
+            logger.debug(f"Groq LLM Raw Response: {response}")
+            return response.choices[0].message.content
         
     def resources_recorder(self):
         """

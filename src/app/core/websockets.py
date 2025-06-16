@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, List, TypedDict
+from core.dependencies import survey_service
 from services.llm.groq_llm import LLMGroq
 from core.classes.chat_session import ChatSession
 from services.llm.llm_service_factory import LLMServiceFactory
@@ -13,17 +14,29 @@ class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str,WSChatSessionConnection] = {}
 
-    async def connect(self, websocket: WebSocket, client_id: str):
+    async def connect(self, websocket: WebSocket, client_id: str, document_id:str):
         await websocket.accept()
+        
         if client_id not in self.active_connections:
+            survey = await survey_service.get_survey(document_id=document_id)
+            cleaned = survey.get("content")["whole_document"].replace('\\n', '\n')
             self.active_connections[client_id] = {
                 "connections": [],
-                "chat_session": ChatSession(session_id=client_id, agent=LLMGroq(
-                    model_name="llama3-8b-8192",
-                    prompt="Always start your response with a Greeting and time. This is the context for time: {time}",
-                    placeholders={"time": datetime.now().strftime("%H:%M:%S") + " " + datetime.now().strftime("%d/%m/%Y")},
-                ), ws_client=websocket)
+                "chat_session": ChatSession(
+                    session_id=client_id, 
+                    agent=LLMServiceFactory.create_llm(
+                    "groq",
+                    model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+                    prompt=
+f"""You are a medical surveyor that conducts a survey with a patient that have recently had something (e.g. diagnosis, medical conditions). You will be given a survey and you will engage with the patient and ask the items in the survey one by one. You will be compassionate and may give some feedback about the answer. You will display the question in **bold** to easily be read by the patient. Keep in mind the type of questions that a survey can have like: multiple choice questions, open-ended question, number ranking. With this, it is important that you understand the question and understand the answer of the patient since sometimes the patient may answer differently from the choices. With this, you need to categorize well their answers that will be the nearest from the choices. But do not show the choices to the patient. But do show the category of the answer for the previous question only based on the choices in your next reply. If you can categorize the answer, then you can proceed to the next question. If you cannot categorize the answer, then you will ask the patient to clarify their answer. Sometimes the questions contains sensitive topics about sexual and psychological aspects, but this is normal since you are a medical surveyor. Analyze the questionnaire first to understand then give then conduct the survey.
+Here is the survey that you will conduct with the patient:
+{cleaned}
+""",
+                    placeholders={"time": datetime.now().strftime("%H:%M:%S") + " " + datetime.now().strftime("%d/%m/%Y")},),
+                    ws_client=websocket)
             }
+            
+            await self.active_connections[client_id]["chat_session"].send_message(message="Now, start and conduct the survey and introduce yourself as a medical surveyor without mentioning names. Be compassionate. You are not required to mention the choices since you are the one categorizing the choices. It is also important to make sure you covered all the questions")
         self.active_connections[client_id]["connections"].append(websocket)
         
         logger.debug(f"Client {client_id} just connected!")
@@ -41,16 +54,14 @@ class WebSocketManager:
                 logger.debug(f"Received Message: {message}")
                 chat_session = self.active_connections[client_id]["chat_session"]
                 cs = await chat_session.send_message(message=message)
-                ct = await chat_session.get_messages()
-                logger.debug(f"ChatHistory: {ct}")
                 
 
 websocket_manager = WebSocketManager()
 
 def setup_websockets(app):
-    @app.websocket("/ws/{client_id}")
-    async def websocket_endpoint(websocket: WebSocket, client_id: str):
-        await websocket_manager.connect(websocket, client_id)
+    @app.websocket("/ws/{document_id}/{client_id}")
+    async def websocket_endpoint(websocket: WebSocket, document_id:str, client_id: str):
+        await websocket_manager.connect(websocket, client_id, document_id)
         try:
             while True:
                 data = await websocket.receive_json()

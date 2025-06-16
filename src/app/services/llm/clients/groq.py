@@ -16,7 +16,7 @@ class GroqService(LLMServiceProvider):
         return self.client
     
 groq_client = GroqService(
-    api_key=os.getenv("GROQ_API")
+    api_key=os.getenv("GROQ_API_KEY")
 )
     
     

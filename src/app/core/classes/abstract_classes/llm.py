@@ -4,7 +4,6 @@ from typing import List, Optional, Union
 from fastapi import WebSocket
 
 from core.classes.conversation_manager import ConversationManager
-from core.classes.message import ChatMessage
 from core.classes.prompt import Prompt
 from core.classes.context_manager import ContextManager
 from models.llm.context import LLMContext
@@ -20,6 +19,7 @@ class LLM(ABC):
         max_tokens: Optional[int] = None,
         model_name: Optional[str] = None,
         prompt: Optional[str] = None,
+        placeholders: dict={},
         **kwargs
     ):
         """Initialize the LLM with generation parameters.
@@ -36,14 +36,16 @@ class LLM(ABC):
         self.max_tokens = max_tokens
         self.model_name = model_name
         self.contexts = ContextManager()
-        self.prompt = Prompt(prompt=prompt, placeholders=kwargs["placeholders"]) if prompt else None
+        self.prompt = Prompt(prompt=prompt, placeholders=placeholders) if prompt else None
 
     @abstractmethod
-    async def send_to_llm(message:str, ws_client:Optional[WebSocket]=None, conversation_manager:Optional[ConversationManager]=None) -> str:
-        """_summary_
-
+    async def send_to_llm(self, message:str, ws_client:Optional[WebSocket]=None, conversation_manager:Optional[ConversationManager]=None) -> str:
+        """A function to make a request to the LLM and return the response.
         Args:
-            message (str): _description_
+            message (str): The message to send to the LLM.
+            ws_client (Optional[WebSocket]): WebSocket client for real-time communication.
+            conversation_manager (Optional[ConversationManager]): Conversation manager for context.
+
         """
         pass
     

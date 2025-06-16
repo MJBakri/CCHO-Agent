@@ -37,11 +37,20 @@ class ConversationManager:
         """Get the conversation history."""
         return self.messages
     
-    async def get_messages_to_llm(self):
+    async def get_messages_to_llm(self, handler, **kwargs):
         """Get the conversation history formatted for LLM input."""
-        return [
+        message = []
+        if callable(handler):
+            
+            prev_messages = [
             {
                 "role": msg.role,
                 "content": msg.get_latest_message()
             } for msg in self.messages
-        ]
+            ]
+            
+            message.extend([*prev_messages, *handler(**kwargs)])
+        else:
+            raise ValueError("Handler must be a function")
+        
+        return message

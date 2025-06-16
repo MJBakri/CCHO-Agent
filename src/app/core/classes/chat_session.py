@@ -23,4 +23,4 @@ class ChatSession:
     async def send_message(self, message: str):
         await self._add_message(message)
         
-        await self.agent.send_to_llm(message=message, ws_client=self.ws_client, conversation_manager=self.conversation_manager)
+        await self.agent.send_to_llm(message=message, ws_client=self.ws_client, conversation_manager=self.conversation_manager, stream=True)
