@@ -9,7 +9,7 @@ def convert_pdf_to_base64_images(pdf_content: bytes) -> list:
     """
     try:
         # Convert PDF pages to images
-        images = convert_from_bytes(pdf_content)
+        images = convert_from_bytes(pdf_content, )
         base64_images = []
         
         # Convert each page to base64

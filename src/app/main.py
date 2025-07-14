@@ -4,8 +4,9 @@ from logger.logger import logger
 from core.config import settings
 from api.v1.api import api_router
 from core.middleware import setup_middleware
-from core.websockets import setup_websockets
+from core.websockets import setup_websockets, analytics_websockets
 from core.routes.crud.surveys import router as surveys_router
+from core.routes.crud.analytics import router as analytics_router
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
@@ -17,8 +18,10 @@ app = FastAPI(
 setup_middleware(app)
 # setup_socketio(app)  # Socket.IO setup
 setup_websockets(app)  # WebSocket setup
+analytics_websockets(app)  # WebSocket setup
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(surveys_router, prefix=settings.API_V1_STR)
+app.include_router(analytics_router, prefix=settings.API_V1_STR)
 
 
